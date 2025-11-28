@@ -8,13 +8,24 @@ import "core:reflect"
 import "core:strings"
 
 Language :: enum {
+	Ada,
+	B,
+	Bat,
+	Bash,
+	Barq,
 	C,
+	C3,
 	CPP,
-	Rust,
-	Odin,
+	Fish,
 	JavaScript,
-	TypeScript,
+	JSON,
 	Markdown,
+	Nur,
+	Odin,
+	Rust,
+	TypeScript,
+	TOML,
+	YAML,
 }
 
 Stat :: struct {
@@ -42,6 +53,8 @@ accumulate :: proc(dir_path: string, accumulation: ^Accumulation) {
 		os.exit(1)
 	}
 
+	defer os.close(dir)
+
 	files, read_err := os.read_dir(dir, 0)
 
 	if read_err != nil {
@@ -60,14 +73,48 @@ accumulate :: proc(dir_path: string, accumulation: ^Accumulation) {
 
 		language: Language
 
-		if strings.ends_with(file.name, ".odin") {
+		if strings.ends_with(file.name, ".ada") {
+			language = .Ada
+		} else if strings.ends_with(file.name, ".odin") {
 			language = .Odin
-		} else if strings.ends_with(file.name, ".md") {
-			language = .Markdown
+		} else if strings.ends_with(file.name, ".js") ||
+		   strings.ends_with(file.name, ".cjs") ||
+		   strings.ends_with(file.name, ".mjs") ||
+		   strings.ends_with(file.name, ".jsx") {
+			language = .JavaScript
+		} else if strings.ends_with(file.name, ".ts") ||
+		   strings.ends_with(file.name, ".cts") ||
+		   strings.ends_with(file.name, ".mts") ||
+		   strings.ends_with(file.name, ".tsx") {
+			language = .TypeScript
+		} else if strings.ends_with(file.name, ".b") {
+			language = .B
+		} else if strings.ends_with(file.name, ".bat") {
+			language = .Bat
+		} else if strings.ends_with(file.name, ".bq") {
+			language = .Barq
+		} else if strings.ends_with(file.name, ".sh") {
+			language = .Bash
+		} else if strings.ends_with(file.name, ".fish") {
+			language = .Fish
 		} else if strings.ends_with(file.name, ".c") || strings.ends_with(file.name, ".h") {
 			language = .C
+		} else if strings.ends_with(file.name, ".c3") || strings.ends_with(file.name, ".c3i")|| strings.ends_with(file.name, ".c3t") {
+			language = .C3
 		} else if strings.ends_with(file.name, ".cpp") || strings.ends_with(file.name, ".hpp") {
 			language = .CPP
+		} else if strings.ends_with(file.name, ".rs") {
+			language = .Rust
+		} else if strings.ends_with(file.name, ".md") {
+			language = .Markdown
+		} else if strings.ends_with(file.name, ".nur") {
+			language = .Nur
+		} else if strings.ends_with(file.name, ".json") {
+			language = .JSON
+		} else if strings.ends_with(file.name, ".toml") {
+			language = .TOML
+		} else if strings.ends_with(file.name, ".yaml") || strings.ends_with(file.name, ".yml") {
+			language = .YAML
 		} else {
 			accumulation.ignored_files += 1
 
@@ -118,28 +165,27 @@ accumulate :: proc(dir_path: string, accumulation: ^Accumulation) {
 }
 
 digits_count :: proc(n: $T) -> int where intrinsics.type_is_numeric(T) {
+	if n == 0 do return 1
 	return int(math.floor(math.log10(f64(n)))) + 1
 }
 
+PADDING :: 25
+
 main :: proc() {
 	if len(os.args) < 2 {
-		fmt.eprintln("usage:", os.args[0], "<directory>")
+		fmt.eprintln("usage:", os.args[0], "<..directories>")
 		os.exit(1)
 	}
 
 	accumulation: Accumulation
 
-	accumulate(os.args[1], &accumulation)
-
-	max_language_padding := 0
-
-	for language, _ in accumulation.by_language {
-		language_padding := len(reflect.enum_field_names(Language)[language])
-
-		if language_padding > max_language_padding {
-			max_language_padding = language_padding
-		}
+	for dir_path in os.args[1:] {
+		accumulate(dir_path, &accumulation)
 	}
+
+	fmt.println("ignored", accumulation.ignored_files, "files")
+
+	fmt.println()
 
 	fmt.println(
 		"------------------------------------------------------------------------------------------",
@@ -147,11 +193,11 @@ main :: proc() {
 
 	fmt.printfln(
 		"language%*sfiles%*sblank%*scode",
-		25 - len("language"),
+		PADDING - len("language"),
 		"",
-		25 - len("files"),
+		PADDING - len("files"),
 		"",
-		25 - len("blank"),
+		PADDING - len("blank"),
 		"",
 	)
 
@@ -165,13 +211,13 @@ main :: proc() {
 		fmt.printfln(
 			"%s%*s%d%*s%d%*s%d",
 			language_name,
-			25 - len(language_name),
+			PADDING - len(language_name),
 			"",
 			stat.files,
-			25 - digits_count(stat.files),
+			PADDING - digits_count(stat.files),
 			"",
 			stat.blank,
-			25 - digits_count(stat.blank),
+			PADDING - digits_count(stat.blank),
 			"",
 			stat.code,
 		)
@@ -183,13 +229,13 @@ main :: proc() {
 
 	fmt.printfln(
 		"Sum:%*s%d%*s%d%*s%d",
-		25 - len("Sum:"),
+		PADDING - len("Sum:"),
 		"",
 		accumulation.sum.files,
-		25 - digits_count(accumulation.sum.files),
+		PADDING - digits_count(accumulation.sum.files),
 		"",
 		accumulation.sum.blank,
-		25 - digits_count(accumulation.sum.blank),
+		PADDING - digits_count(accumulation.sum.blank),
 		"",
 		accumulation.sum.code,
 	)
