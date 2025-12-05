@@ -94,6 +94,14 @@ accumulate :: proc(dir_path: string, accumulation: ^Accumulation, path_lists: ^P
       }
     }
 
+    in_count_list := false
+    for path in path_lists.count_list {
+      if path == file.fullpath {
+        in_count_list = true
+        break
+      }
+    }
+
     if in_ignore_list {
 			accumulation.ignored_files += 1
 
@@ -101,8 +109,9 @@ accumulate :: proc(dir_path: string, accumulation: ^Accumulation, path_lists: ^P
     }
 
 		if file.is_dir {
-			accumulate(file.fullpath, accumulation, path_lists)
+      if file.name[0] ==  '.' && !in_count_list { continue }
 
+			accumulate(file.fullpath, accumulation, path_lists)
 			continue
 		}
 
@@ -212,7 +221,7 @@ PADDING :: 25
 
 main :: proc() {
 	if len(os.args) < 2 {
-		fmt.eprintln("usage:", os.args[0], "<..directories>", "[-h]", "[-i] (files/directories to ignore)")
+		fmt.eprintln("usage:", os.args[0], "<..directories>", "[-i] <files/directories to ignore>")
 		os.exit(1)
 	}
 
@@ -226,7 +235,6 @@ main :: proc() {
   i_flag: bool = false
 
 	for arg in os.args[1:] {
-    if arg == "-h" { h_flag = true; i_flag = false }
     if arg == "-i" { i_flag = true; continue}
 
     if !h_flag && !i_flag {
@@ -239,7 +247,8 @@ main :: proc() {
   }
 
   for dir_path in path_lists.count_list[0:] {
-    accumulate(dir_path, &accumulation, &path_lists)
+    fmt.printfln("%s", dir_path)
+    accumulate(fmt.tprintf("%s/%s", cwd, dir_path), &accumulation, &path_lists)
   }
 
 	fmt.println("ignored", accumulation.ignored_files, "files")
@@ -273,10 +282,10 @@ main :: proc() {
 			PADDING - len(language_name),
 			"",
 			human_num(stat.files),
-			PADDING - digits_count(stat.files),
+			PADDING - len(human_num(stat.files)),
 			"",
 			human_num(stat.blank),
-			PADDING - digits_count(stat.blank),
+			PADDING - len(human_num(stat.blank)),
 			"",
 			human_num(stat.code),
 		)
@@ -291,10 +300,10 @@ main :: proc() {
 		PADDING - len("Sum:"),
 		"",
 		human_num(accumulation.sum.files),
-		PADDING - digits_count(accumulation.sum.files),
+		PADDING - len(human_num(accumulation.sum.files)),
 		"",
 		human_num(accumulation.sum.blank),
-		PADDING - digits_count(accumulation.sum.blank),
+		PADDING - len(human_num(accumulation.sum.blank)),
 		"",
 		human_num(accumulation.sum.code),
 	)
