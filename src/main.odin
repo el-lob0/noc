@@ -247,7 +247,6 @@ main :: proc() {
   }
 
   for dir_path in path_lists.count_list[0:] {
-    fmt.printfln("%s", dir_path)
     accumulate(fmt.tprintf("%s/%s", cwd, dir_path), &accumulation, &path_lists)
   }
 
